@@ -1,0 +1,511 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Github, 
+  ExternalLink, 
+  Star, 
+  GitFork, 
+  MapPin, 
+  Calendar,
+  Users,
+  BookOpen,
+  Code,
+  ArrowLeft,
+  Linkedin,
+  Globe,
+  Mail
+} from 'lucide-react';
+
+interface GitHubUser {
+  login: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  location: string;
+  blog: string;
+  company: string;
+  public_repos: number;
+  followers: number;
+  following: number;
+  created_at: string;
+  html_url: string;
+  email: string;
+}
+
+interface Repository {
+  id: number;
+  name: string;
+  description: string;
+  html_url: string;
+  language: string;
+  stargazers_count: number;
+  forks_count: number;
+  created_at: string;
+  updated_at: string;
+  topics: string[];
+}
+
+interface Config {
+  theme?: {
+    primaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+  };
+  sections?: {
+    about?: string;
+    skills?: string[];
+    featured?: string[];
+  };
+  social?: {
+    linkedin?: string;
+    website?: string;
+    email?: string;
+  };
+}
+
+export default function UserPortfolio() {
+  const { username } = useParams();
+  const router = useRouter();
+  const [user, setUser] = useState<GitHubUser | null>(null);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [config, setConfig] = useState<Config | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!username) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch user profile
+        const userResponse = await fetch(`https://api.github.com/users/${username}`);
+        
+        if (!userResponse.ok) {
+          throw new Error('Usuário não encontrado');
+        }
+        
+        const userData: GitHubUser = await userResponse.json();
+        setUser(userData);
+
+        // Fetch repositories
+        const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=20`);
+        const reposData: Repository[] = await reposResponse.json();
+
+        // Filter out repos: "config", "readme", or same as username (case-insensitive)
+        const usernameLower = String(username).toLowerCase();
+        const filteredRepos = reposData
+          .filter(repo => !repo.name.toLowerCase().includes('fork')) // keep existing behavior
+          .filter(repo => {
+            const repoNameLower = repo.name.toLowerCase();
+            return repoNameLower !== 'config' && repoNameLower !== 'readme' && repoNameLower !== usernameLower;
+          });
+
+        setRepositories(filteredRepos);
+
+        // Try to fetch config from config repository
+        try {
+          const configResponse = await fetch(`https://api.github.com/repos/${username}/config/contents/portfolio.json`);
+          
+          if (configResponse.ok) {
+            const configData = await configResponse.json();
+            const configContent = JSON.parse(atob(configData.content));
+            setConfig(configContent);
+          }
+        } catch {
+          // Config is optional, so we ignore errors here
+        }
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [username]);
+
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (error || !user) {
+    return <ErrorState error={error} onBack={() => router.push('/')} />;
+  }
+
+  const theme = config?.theme || {};
+  const primaryColor = theme.primaryColor || '#3B82F6';
+  const backgroundColor = theme.backgroundColor || '#F8FAFC';
+  
+  const featuredRepos = config?.sections?.featured && config.sections
+    ? repositories.filter(repo => config.sections!.featured?.includes(repo.name))
+    : repositories.slice(0, 6);
+
+  const topLanguages = repositories
+    .filter(repo => repo.language)
+    .reduce((acc: { [key: string]: number }, repo) => {
+      acc[repo.language] = (acc[repo.language] || 0) + 1;
+      return acc;
+    }, {});
+
+  const sortedLanguages = Object.entries(topLanguages)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 8);
+
+  return (
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor }}
+    >
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.push('/')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+        </div>
+
+        {/* Profile Header */}
+        <div className="grid lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-1">
+            <Card className="border-none shadow-xl">
+              <CardContent className="p-8 text-center">
+                <img
+                  src={user.avatar_url}
+                  alt={user.name || user.login}
+                  className="w-32 h-32 rounded-full mx-auto mb-6 border-4 border-white shadow-lg"
+                />
+                
+                <h1 className="text-3xl font-bold mb-2" style={{ color: primaryColor }}>
+                  {user.name || user.login}
+                </h1>
+                
+                <p className="text-gray-600 mb-4">@{user.login}</p>
+                
+                {user.bio && (
+                  <p className="text-gray-700 mb-6 leading-relaxed">
+                    {config?.sections?.about || user.bio}
+                  </p>
+                )}
+
+                <div className="space-y-3 text-sm text-gray-600">
+                  {user.location && (
+                    <div className="flex items-center justify-center space-x-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{user.location}</span>
+                    </div>
+                  )}
+                  
+                  {user.company && (
+                    <div className="flex items-center justify-center space-x-2">
+                      <Users className="h-4 w-4" />
+                      <span>{user.company}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-center space-x-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Membro desde {new Date(user.created_at).getFullYear()}</span>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div className="flex justify-center space-x-4 mt-6">
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={user.html_url} target="_blank" rel="noopener noreferrer">
+                      <Github className="h-4 w-4 mr-2" />
+                      GitHub
+                    </a>
+                  </Button>
+                  
+                  {config?.social?.linkedin && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`https://linkedin.com/in/${config.social.linkedin}`} target="_blank" rel="noopener noreferrer">
+                        <Linkedin className="h-4 w-4 mr-2" />
+                        LinkedIn
+                      </a>
+                    </Button>
+                  )}
+                  
+                  {(config?.social?.website || user.blog) && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={config?.social?.website || user.blog} target="_blank" rel="noopener noreferrer">
+                        <Globe className="h-4 w-4 mr-2" />
+                        Website
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2 space-y-8">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="border-none shadow-lg text-center">
+                <CardContent className="p-6">
+                  <div className="text-3xl font-bold" style={{ color: primaryColor }}>
+                    {user.public_repos}
+                  </div>
+                  <div className="text-gray-600">Repositórios</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-lg text-center">
+                <CardContent className="p-6">
+                  <div className="text-3xl font-bold" style={{ color: primaryColor }}>
+                    {user.followers}
+                  </div>
+                  <div className="text-gray-600">Seguidores</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-lg text-center">
+                <CardContent className="p-6">
+                  <div className="text-3xl font-bold" style={{ color: primaryColor }}>
+                    {repositories.reduce((sum, repo) => sum + repo.stargazers_count, 0)}
+                  </div>
+                  <div className="text-gray-600">Stars Total</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Skills/Languages */}
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Code className="h-5 w-5" style={{ color: primaryColor }} />
+                  <span>Principais Tecnologias</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {config?.sections?.skills ? (
+                    config.sections.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="text-sm py-1 px-3">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    sortedLanguages.map(([language, count]) => (
+                      <Badge key={language} variant="secondary" className="text-sm py-1 px-3">
+                        {language} ({count})
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Repositories */}
+        <div>
+          <h2 className="text-3xl font-bold mb-8 flex items-center space-x-3">
+            <BookOpen className="h-8 w-8" style={{ color: primaryColor }} />
+            <span>Projetos em Destaque</span>
+          </h2>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredRepos.map((repo) => (
+              <Card key={repo.id} className="border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg line-clamp-1">
+                      {repo.name}
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                      <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                  {repo.description && (
+                    <CardDescription className="line-clamp-2">
+                      {repo.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Topics */}
+                    {repo.topics.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {repo.topics.slice(0, 3).map((topic) => (
+                          <Badge key={topic} variant="outline" className="text-xs">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Stats and Language */}
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="flex items-center space-x-4">
+                        {repo.language && (
+                          <span className="flex items-center space-x-1">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: primaryColor }}
+                            />
+                            <span>{repo.language}</span>
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <span className="flex items-center space-x-1">
+                          <Star className="h-3 w-3" />
+                          <span>{repo.stargazers_count}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <GitFork className="h-3 w-3" />
+                          <span>{repo.forks_count}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {repositories.length > 6 && (
+            <div className="text-center mt-8">
+              <Button variant="outline" asChild>
+                <a href={user.html_url} target="_blank" rel="noopener noreferrer">
+                  Ver todos os {user.public_repos} repositórios no GitHub
+                  <Github className="h-4 w-4 ml-2" />
+                </a>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-16 pt-8 border-t border-gray-200">
+          <p className="text-gray-600">
+            Portfólio gerado automaticamente via{' '}
+            <a href="/" className="font-medium hover:underline" style={{ color: primaryColor }}>
+              GitHub Portfolio Generator
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="container mx-auto px-4 py-8">
+        <Skeleton className="h-10 w-24 mb-8" />
+        
+        <div className="grid lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-8 text-center space-y-4">
+                <Skeleton className="w-32 h-32 rounded-full mx-auto" />
+                <Skeleton className="h-8 w-48 mx-auto" />
+                <Skeleton className="h-4 w-32 mx-auto" />
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6 text-center">
+                    <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-6 w-20" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-16 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ error, onBack }: { error: string | null; onBack: () => void }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="max-w-md mx-auto text-center space-y-6">
+        <div className="p-6 bg-red-50 rounded-full w-fit mx-auto">
+          <Github className="h-12 w-12 text-red-500" />
+        </div>
+        
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Ops! Algo deu errado
+          </h1>
+          <p className="text-gray-600">
+            {error || 'Não foi possível carregar o perfil do GitHub'}
+          </p>
+        </div>
+        
+        <div className="space-y-3">
+          <Button onClick={onBack} className="w-full">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar ao Início
+          </Button>
+          
+          <p className="text-sm text-gray-500">
+            Verifique se o nome de usuário está correto e se o perfil é público
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
