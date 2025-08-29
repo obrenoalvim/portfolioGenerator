@@ -21,6 +21,7 @@ import {
   Globe,
   Mail
 } from 'lucide-react';
+import ExperienceTimeline from '@/components/ExperienceTimeline';
 
 interface GitHubUser {
   login: string;
@@ -61,12 +62,21 @@ interface Config {
     about?: string;
     skills?: string[];
     featured?: string[];
+    experience?: ExperienceItem[];
   };
   social?: {
     linkedin?: string;
     website?: string;
     email?: string;
   };
+}
+
+interface ExperienceItem {
+  title: string;
+  company: string;
+  period: string;
+  summary?: string;
+  highlights?: string[];
 }
 
 export default function UserPortfolio() {
@@ -311,6 +321,12 @@ export default function UserPortfolio() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Experience Timeline (if available) */}
+            <ExperienceTimeline
+              experiences={config?.sections?.experience || []}
+              primaryColor={primaryColor}
+            />
           </div>
         </div>
 
