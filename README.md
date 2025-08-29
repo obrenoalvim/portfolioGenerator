@@ -109,42 +109,11 @@ Observação: repositórios cujo nome contenha "fork" são filtrados.
 - O projeto utiliza a API pública sem autenticação por padrão (60 requisições/hora por IP)
 - Em uso intenso, você pode atingir rate limit; considere adicionar autenticação no fetch (não implementado aqui por padrão)
 
-## Estrutura do projeto
-```
-.
-├─ app/
-│  ├─ page.tsx               # Landing e formulário de username
-│  ├─ [username]/page.tsx    # Página do portfólio
-│  └─ globals.css
-├─ components/
-│  ├─ ExperienceTimeline.tsx
-│  └─ ui/                    # Componentes shadcn/ui
-├─ hooks/
-├─ lib/
-├─ tailwind.config.ts
-├─ next.config.js
-├─ tsconfig.json
-└─ package.json
-```
-
-## Qualidade de código
-- ESLint (config Next.js) — `npm run lint`
-- TypeScript estrito (projeto configurado com tsconfig)
-
 ## Build e produção
 ```bash
 npm run build
 npm run start
 ```
-- Servirá em produção em `http://localhost:3000`
-
-## Deploy
-- Recomendado: Vercel (detecção automática de Next.js)
-- Não são necessárias variáveis de ambiente por padrão
-- Certifique-se de usar Node 18+
-
-## Licença
-MIT — ajuste conforme necessário para sua organização.
 
 ## Créditos
 - [shadcn/ui](https://ui.shadcn.com/)
