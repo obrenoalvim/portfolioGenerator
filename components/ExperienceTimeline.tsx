@@ -28,9 +28,6 @@ export default function ExperienceTimeline({
           <Briefcase className="h-5 w-5" style={{ color: primaryColor }} />
           <span>Experiências</span>
         </CardTitle>
-        <CardDescription>
-          Uma linha do tempo das experiências profissionais mais relevantes
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <ol className="relative border-l border-gray-200">

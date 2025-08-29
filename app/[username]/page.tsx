@@ -127,7 +127,11 @@ export default function UserPortfolio() {
           
           if (configResponse.ok) {
             const configData = await configResponse.json();
-            const configContent = JSON.parse(atob(configData.content));
+            // Decodificar Base64 em UTF-8 de forma segura
+            const base64 = configData.content.replace(/\n/g, '');
+            const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+            const text = new TextDecoder('utf-8').decode(binary);
+            const configContent = JSON.parse(text);
             setConfig(configContent);
           }
         } catch {
@@ -177,21 +181,9 @@ export default function UserPortfolio() {
       style={{ backgroundColor }}
     >
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push('/')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        </div>
-
         {/* Profile Header */}
         <div className="grid lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-8">
             <Card className="border-none shadow-xl">
               <CardContent className="p-8 text-center">
                 <img
@@ -234,7 +226,7 @@ export default function UserPortfolio() {
                 </div>
 
                 {/* Social Links */}
-                <div className="flex justify-center space-x-4 mt-6">
+                <div className="flex justify-center flex-wrap gap-3 mt-6">
                   <Button variant="outline" size="sm" asChild>
                     <a href={user.html_url} target="_blank" rel="noopener noreferrer">
                       <Github className="h-4 w-4 mr-2" />
@@ -259,16 +251,23 @@ export default function UserPortfolio() {
                       </a>
                     </Button>
                   )}
+
+                  {(config?.social?.email || user.email) && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`mailto:${config?.social?.email || user.email}`}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          <div className="lg:col-span-2 space-y-8">
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Stats abaixo do card */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="border-none shadow-lg text-center">
-                <CardContent className="p-6">
+                <CardContent className="p-6 flex flex-col items-center text-center">
                   <div className="text-3xl font-bold" style={{ color: primaryColor }}>
                     {user.public_repos}
                   </div>
@@ -277,7 +276,7 @@ export default function UserPortfolio() {
               </Card>
               
               <Card className="border-none shadow-lg text-center">
-                <CardContent className="p-6">
+                <CardContent className="p-6 flex flex-col items-center text-center">
                   <div className="text-3xl font-bold" style={{ color: primaryColor }}>
                     {user.followers}
                   </div>
@@ -286,7 +285,7 @@ export default function UserPortfolio() {
               </Card>
               
               <Card className="border-none shadow-lg text-center">
-                <CardContent className="p-6">
+                <CardContent className="p-6 flex flex-col items-center text-center">
                   <div className="text-3xl font-bold" style={{ color: primaryColor }}>
                     {repositories.reduce((sum, repo) => sum + repo.stargazers_count, 0)}
                   </div>
@@ -295,7 +294,7 @@ export default function UserPortfolio() {
               </Card>
             </div>
 
-            {/* Skills/Languages */}
+            {/* Tecnologias abaixo do card */}
             <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -321,8 +320,10 @@ export default function UserPortfolio() {
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Experience Timeline (if available) */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Linha do tempo de experiência no topo da coluna direita */}
             <ExperienceTimeline
               experiences={config?.sections?.experience || []}
               primaryColor={primaryColor}
@@ -435,7 +436,7 @@ function LoadingSkeleton() {
         <Skeleton className="h-10 w-24 mb-8" />
         
         <div className="grid lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-8">
             <Card>
               <CardContent className="p-8 text-center space-y-4">
                 <Skeleton className="w-32 h-32 rounded-full mx-auto" />
@@ -444,10 +445,8 @@ function LoadingSkeleton() {
                 <Skeleton className="h-20 w-full" />
               </CardContent>
             </Card>
-          </div>
-          
-          <div className="lg:col-span-2 space-y-8">
-            <div className="grid grid-cols-3 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
                 <Card key={i}>
                   <CardContent className="p-6 text-center">
@@ -457,7 +456,7 @@ function LoadingSkeleton() {
                 </Card>
               ))}
             </div>
-            
+
             <Card>
               <CardHeader>
                 <Skeleton className="h-6 w-48" />
@@ -466,6 +465,28 @@ function LoadingSkeleton() {
                 <div className="flex flex-wrap gap-2">
                   {[...Array(6)].map((_, i) => (
                     <Skeleton key={i} className="h-6 w-20" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-start space-x-4">
+                      <Skeleton className="w-3 h-3 rounded-full mt-2" />
+                      <div className="space-y-2 w-full">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-3 w-2/3" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>
