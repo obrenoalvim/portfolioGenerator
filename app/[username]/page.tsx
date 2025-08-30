@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Github, 
-  ExternalLink, 
-  Star, 
-  GitFork, 
-  MapPin, 
+import {
+  Github,
+  ExternalLink,
+  Star,
+  GitFork,
+  MapPin,
   Calendar,
   Users,
   BookOpen,
@@ -19,9 +19,10 @@ import {
   ArrowLeft,
   Linkedin,
   Globe,
-  Mail
+  Mail,
 } from 'lucide-react';
 import ExperienceTimeline from '@/components/ExperienceTimeline';
+
 
 interface GitHubUser {
   login: string;
@@ -52,6 +53,14 @@ interface Repository {
   topics: string[];
 }
 
+interface ExperienceItem {
+  title: string;
+  company: string;
+  period: string;
+  summary?: string;
+  highlights?: string[];
+}
+
 interface Config {
   theme?: {
     primaryColor?: string;
@@ -71,81 +80,80 @@ interface Config {
   };
 }
 
-interface ExperienceItem {
-  title: string;
-  company: string;
-  period: string;
-  summary?: string;
-  highlights?: string[];
-}
+// Metadata básico (genérico)
 
-export default function UserPortfolio() {
-  const { username } = useParams();
+
+
+export default function UsernamePage() {
   const router = useRouter();
+  const params = useParams<{ username: string }>();
+  const username = params?.username;
+
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [config, setConfig] = useState<Config | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!username) return;
+  const fetchUserData = async (uname: string) => {
+    try {
+      setLoading(true);
+      setError(null);
 
+      // Perfil
+      const userResponse = await fetch(`https://api.github.com/users/${uname}`);
+      if (!userResponse.ok) {
+        throw new Error('Usuário não encontrado');
+      }
+      const userData: GitHubUser = await userResponse.json();
+      setUser(userData);
+
+      // Repositórios
+      const reposResponse = await fetch(
+        `https://api.github.com/users/${uname}/repos?sort=updated&per_page=20`
+      );
+      const reposData: Repository[] = await reposResponse.json();
+
+      const unameLower = String(uname).toLowerCase();
+      const filteredRepos = reposData
+        .filter((repo) => !repo.name.toLowerCase().includes('fork'))
+        .filter((repo) => {
+          const repoNameLower = repo.name.toLowerCase();
+          return (
+            repoNameLower !== 'config' &&
+            repoNameLower !== 'readme' &&
+            repoNameLower !== unameLower
+          );
+        });
+      setRepositories(filteredRepos);
+
+      // Config opcional
       try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch user profile
-        const userResponse = await fetch(`https://api.github.com/users/${username}`);
-        
-        if (!userResponse.ok) {
-          throw new Error('Usuário não encontrado');
-        }
-        
-        const userData: GitHubUser = await userResponse.json();
-        setUser(userData);
-
-        // Fetch repositories
-        const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=20`);
-        const reposData: Repository[] = await reposResponse.json();
-
-        // Filter out repos: "config", "readme", or same as username (case-insensitive)
-        const usernameLower = String(username).toLowerCase();
-        const filteredRepos = reposData
-          .filter(repo => !repo.name.toLowerCase().includes('fork')) // keep existing behavior
-          .filter(repo => {
-            const repoNameLower = repo.name.toLowerCase();
-            return repoNameLower !== 'config' && repoNameLower !== 'readme' && repoNameLower !== usernameLower;
-          });
-
-        setRepositories(filteredRepos);
-
-        // Try to fetch config from config repository
-        try {
-          const configResponse = await fetch(`https://api.github.com/repos/${username}/config/contents/portfolio.json`);
-          
-          if (configResponse.ok) {
-            const configData = await configResponse.json();
-            // Decodificar Base64 em UTF-8 de forma segura
-            const base64 = configData.content.replace(/\n/g, '');
-            const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const configResponse = await fetch(
+          `https://api.github.com/repos/${uname}/config/contents/portfolio.json`
+        );
+        if (configResponse.ok) {
+          const configData = await configResponse.json();
+          const base64 = String(configData.content || '').replace(/\n/g, '');
+          if (base64) {
+            const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
             const text = new TextDecoder('utf-8').decode(binary);
-            const configContent = JSON.parse(text);
+            const configContent: Config = JSON.parse(text);
             setConfig(configContent);
           }
-        } catch {
-          // Config is optional, so we ignore errors here
         }
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
-      } finally {
-        setLoading(false);
+      } catch {
+        // Config é opcional
       }
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchUserData();
+  useEffect(() => {
+    if (username) fetchUserData(username);
   }, [username]);
 
   if (loading) {
@@ -159,27 +167,25 @@ export default function UserPortfolio() {
   const theme = config?.theme || {};
   const primaryColor = theme.primaryColor || '#3B82F6';
   const backgroundColor = theme.backgroundColor || '#F8FAFC';
-  
+
   const featuredRepos = config?.sections?.featured && config.sections
-    ? repositories.filter(repo => config.sections!.featured?.includes(repo.name))
+    ? repositories.filter((repo) => config.sections!.featured?.includes(repo.name))
     : repositories.slice(0, 6);
 
   const topLanguages = repositories
-    .filter(repo => repo.language)
-    .reduce((acc: { [key: string]: number }, repo) => {
-      acc[repo.language] = (acc[repo.language] || 0) + 1;
+    .filter((repo) => !!repo.language)
+    .reduce<Record<string, number>>((acc, repo) => {
+      const lang = repo.language as string;
+      acc[lang] = (acc[lang] || 0) + 1;
       return acc;
     }, {});
 
   const sortedLanguages = Object.entries(topLanguages)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 8);
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{ backgroundColor }}
-    >
+    <div className="min-h-screen" style={{ backgroundColor }}>
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
         <div className="grid lg:grid-cols-3 gap-8 mb-12">
