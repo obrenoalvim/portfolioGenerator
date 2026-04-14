@@ -1,0 +1,79 @@
+# GitHub Portfolio Generator
+
+## What This Is
+
+GitHub Portfolio Generator is a free, open-source web tool that automatically transforms any GitHub profile into a professional portfolio website. Users enter a GitHub username and instantly receive a polished, shareable portfolio page.
+
+## Who It's For
+
+- Software developers who want a professional portfolio without building one from scratch
+- Developers applying for jobs who need a quick portfolio link
+- Open source contributors who want to showcase their work
+- Anyone with a GitHub profile who wants a visual presentation of their projects
+
+## What It Does
+
+1. **Automatic analysis** — Fetches public repositories, languages, stars, forks, and contribution data from the GitHub API
+2. **Instant generation** — Creates a portfolio page at `/<github-username>` in real time
+3. **Customization** — Supports a `portfolio.json` config file in a GitHub repo named `config` to personalize colors, layout, skills, featured projects, experience timeline, and social links
+4. **Always up to date** — Portfolio data is fetched live, so it always reflects the latest GitHub activity
+
+## Key Features
+
+- Displays profile info: name, bio, location, company, member since date
+- Stats: total repositories, followers, total stars across all repos
+- Top programming languages detected from repositories
+- Featured projects grid with stars, forks, language, and topics
+- Experience timeline (via portfolio.json config)
+- Social links: GitHub, LinkedIn, website, email
+- SEO-optimized with dynamic Open Graph and Twitter Card metadata per user
+
+## Technology Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Data Source**: GitHub REST API (public endpoints, no auth required)
+- **Language**: TypeScript
+
+## Customization via portfolio.json
+
+Users can create a public GitHub repository named `config` containing a `portfolio.json` file:
+
+```json
+{
+  "theme": {
+    "primaryColor": "#3B82F6",
+    "backgroundColor": "#F8FAFC",
+    "textColor": "#1E293B"
+  },
+  "sections": {
+    "about": "Developer passionate about...",
+    "skills": ["JavaScript", "React", "Node.js"],
+    "featured": ["repo1", "repo2", "repo3"],
+    "experience": [
+      {
+        "title": "Senior Developer",
+        "company": "Acme Corp",
+        "period": "2022 - Present",
+        "summary": "Led frontend architecture..."
+      }
+    ]
+  },
+  "social": {
+    "linkedin": "your-linkedin-handle",
+    "website": "https://yoursite.com",
+    "email": "you@example.com"
+  }
+}
+```
+
+## Important Links
+
+- Homepage / Generator: /
+- Example portfolio: /octocat
+- Source code: https://github.com
+
+## License
+
+Open source — free to use and self-host.

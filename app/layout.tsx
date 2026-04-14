@@ -6,16 +6,33 @@ const inter = Inter({ subsets: ['latin', 'latin-ext'] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
+const siteDescription =
+  'Transforme seu perfil GitHub em um portfólio profissional em segundos. ' +
+  'Análise automática de repositórios, linguagens e projetos para criar uma apresentação elegante das suas habilidades como desenvolvedor.';
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'GitHub Portfolio Generator',
+    default: 'GitHub Portfolio Generator — Crie seu portfólio em segundos',
     template: '%s | GitHub Portfolio Generator',
   },
-  description: 'Transforme seu perfil GitHub em um portfólio profissional',
+  description: siteDescription,
   applicationName: 'GitHub Portfolio Generator',
-  keywords: ['GitHub', 'portfólio', 'desenvolvedor', 'projetos', 'Next.js', 'Tailwind'],
+  keywords: [
+    'GitHub portfolio generator',
+    'portfólio desenvolvedor',
+    'criar portfólio GitHub',
+    'portfolio programador',
+    'GitHub profile portfolio',
+    'developer portfolio generator',
+    'portfólio online grátis',
+    'Next.js',
+    'open source portfolio',
+    'GitHub API portfolio',
+  ],
   authors: [{ name: 'GitHub Portfolio Generator' }],
+  creator: 'GitHub Portfolio Generator',
+  category: 'developer tools',
   alternates: {
     canonical: '/',
   },
@@ -24,25 +41,51 @@ export const metadata: Metadata = {
     locale: 'pt_BR',
     url: '/',
     siteName: 'GitHub Portfolio Generator',
-    title: 'GitHub Portfolio Generator',
-    description: 'Transforme seu perfil GitHub em um portfólio profissional',
+    title: 'GitHub Portfolio Generator — Crie seu portfólio em segundos',
+    description: siteDescription,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GitHub Portfolio Generator',
-    description: 'Transforme seu perfil GitHub em um portfólio profissional',
+    title: 'GitHub Portfolio Generator — Crie seu portfólio em segundos',
+    description: siteDescription,
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
-  themeColor: '#3B82F6',
 };
 
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#3B82F6',
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'GitHub Portfolio Generator',
+  description: siteDescription,
+  url: siteUrl,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  featureList: [
+    'Análise automática de repositórios GitHub',
+    'Geração de portfólio em tempo real',
+    'Personalização via portfolio.json',
+    'Linha do tempo de experiência profissional',
+    'Suporte a links sociais (LinkedIn, website, email)',
+    'SEO otimizado com Open Graph e Twitter Card',
+  ],
 };
 
 export default function RootLayout({
@@ -52,6 +95,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );
